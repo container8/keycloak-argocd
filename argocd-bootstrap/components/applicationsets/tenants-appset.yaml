@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: infra
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: https://github.com/container8/keycloak-argocd.git
+      revision: HEAD
+      directories:
+      - path: tenants/*
+  template:
+    metadata:
+      name: '{{path.basename}}'
+    spec:
+      project: prod
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 15
+          backoff:
+            duration: 15s
+            factor: 2
+            maxDuration: 5m
+        syncOptions:
+          - CreateNamespace=true
+      source:
+        repoURL: https://github.com/container8/keycloak-argocd.git
+        targetRevision: HEAD
+        path: '{{path}}'
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'

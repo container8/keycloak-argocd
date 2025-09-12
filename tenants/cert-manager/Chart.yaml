@@ -1,0 +1,19 @@
+apiVersion: v2
+name: cert-manager-wrapper
+description: A wrapper Helm chart for the official Jetstack cert-manager chart.
+type: application
+
+# The version of this wrapper chart itself.
+version: 1.0.0
+
+# The version of the application being deployed.
+# This should match the appVersion of the dependency chart.
+appVersion: "v1.18.2"
+
+dependencies:
+  - name: cert-manager
+    # The version of the Jetstack cert-manager chart you want to deploy.
+    # Note: The Jetstack chart uses a 'v' prefix for its versions.
+    version: "v1.18.2"
+    # The official public repository for the cert-manager chart.
+    repository: "https://charts.jetstack.io"

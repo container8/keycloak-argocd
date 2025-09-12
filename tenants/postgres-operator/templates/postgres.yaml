@@ -1,0 +1,31 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: postgresql-kk
+  labels:
+    environment: postgresql-kk
+  namespace: keycloakx
+
+spec:
+  teamId: "acid"
+  volume:
+    size: 10Gi
+  numberOfInstances: 1
+  users:
+    owner-kk:
+      - superuser
+      - createdb
+  databases:
+    kk: owner-kk
+  postgresql:
+    version: "16"
+    parameters:
+      max_connections: "200"
+      max_worker_processes: "8"
+  resources:
+    requests:
+      cpu: 400m
+      memory: 512Mi
+    limits:
+      cpu: 800m
+      memory: 1Gi

@@ -1,0 +1,22 @@
+ingress-nginx:
+  controller:
+    ingressClass: nginx
+    kind: DaemonSet
+    tolerations:
+      - key: "infra"
+        operator: "Equal"
+        effect: "NoSchedule"
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: false
+        # additionalLabels:
+        #   release: "prometheus"
+    podAnnotations:
+      # prometheus.io/port: "10254"
+      # prometheus.io/scrape: "true"
+    service:
+      external:
+        enabled: true
+      internal:
+        enabled: false

@@ -1,0 +1,30 @@
+# This top-level key must match the 'name' of the dependency in Chart.yaml
+cert-manager:
+  installCRDs: true
+  namespace: cert-manager
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # You can also configure resources for the other components:
+  cainjector:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  webhook:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi

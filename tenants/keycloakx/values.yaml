@@ -1,0 +1,42 @@
+kk:
+  proxy:
+    enabled: true
+    mode: xforwarded
+  command:
+    - "/opt/keycloak/bin/kc.sh"
+    - "start"
+    - "--http-port=8080"
+    - "--hostname-strict=false"
+  extraEnv: |
+    - name: KEYCLOAK_ADMIN
+      value: admin
+    - name: JAVA_OPTS_APPEND
+      value: >-
+        -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+
+  database:
+      vendor: postgres
+      hostname: postgresql-kk
+      port: 5432
+      database: kk
+      username: owner-kk
+      existingSecret: "owner-kk.postgresql-kk.credentials.postgresql.acid.zalan.do"
+      existingSecretKey: "password"
+  ingress:
+    enabled: true
+    ingressClassName: "nginx"
+    servicePort: http
+    labels: {}
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    rules:
+      - host: 'sso.xalt.team'
+        paths:
+          - path: /
+            pathType: Prefix
+
+    tls:
+      - hosts:
+          - sso.xalt.team
+        secretName: "keycloakx-tls"
