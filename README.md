@@ -3,7 +3,9 @@
 ## Install ArgoCD
 ```sh
 git clone https://github.com/container8/keycloak-argocd.git
-cd keycloak-argocd/argocd-bootstrap
+cd keycloak-argocd/argocd-bootstrap/bootstrap/base
+helm dependency build
+cd ../..
 helm -n argocd upgrade --install argocd ./bootstrap/base/ \
   -f ./bootstrap/base/values.yaml \
   --create-namespace

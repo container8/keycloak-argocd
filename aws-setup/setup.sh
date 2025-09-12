@@ -7,6 +7,7 @@ export REGION=$(aws configure get region)
 
 EKS_ROLE_NAME=EKSClusterRole
 NODE_ROLE_NAME=EKSNodeGroupRole
+EBS_CSI_ROLE_NAME=AmazonEKS_EBS_CSI_DriverRole
 VPC_STACK_NAME=keycloak-eks-vpc-stack
 CLUSTER_NAME=keycloak-cluster
 NODEGROUP_NAME=keycloak-workers
@@ -66,3 +67,55 @@ aws eks create-nodegroup \
 aws eks wait nodegroup-active --cluster-name ${CLUSTER_NAME} --nodegroup-name ${NODEGROUP_NAME}
 
 aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}
+
+# Configure Storage Class
+
+OIDC_PROVIDER=$(aws eks describe-cluster --name ${CLUSTER_NAME} --query "cluster.identity.oidc.issuer" --output text | sed -e "s/^https:\/\///")
+OIDC_ISSUER_URL=$(aws eks describe-cluster --name ${CLUSTER_NAME} --query "cluster.identity.oidc.issuer" --output text)
+THUMBPRINT=$(echo | openssl s_client -servername oidc.eks.eu-central-1.amazonaws.com -showcerts -connect oidc.eks.eu-central-1.amazonaws.com:443 2>/dev/null | openssl x509 -fingerprint -noout | sed 's/://g' | awk -F= '{print $2}')
+
+aws iam create-open-id-connect-provider \
+  --url ${OIDC_ISSUER_URL} \
+  --thumbprint-list ${THUMBPRINT} \
+  --client-id-list sts.amazonaws.com
+
+cat > ebs-csi-trust-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "${OIDC_PROVIDER}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+aws iam create-role \
+  --role-name ${EBS_CSI_ROLE_NAME} \
+  --assume-role-policy-document file://"ebs-csi-trust-policy.json"
+
+aws iam attach-role-policy \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
+  --role-name ${EBS_CSI_ROLE_NAME}
+
+CSI_DRIVER_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${EBS_CSI_ROLE_NAME}"
+
+aws eks create-addon --cluster-name ${CLUSTER_NAME} \
+  --addon-name aws-ebs-csi-driver \
+  --service-account-role-arn ${CSI_DRIVER_ROLE_ARN}
+
+aws eks wait addon-active \
+  --cluster-name ${CLUSTER_NAME} \
+  --addon-name aws-ebs-csi-driver
+
+kubectl patch storageclass gp2 -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
