@@ -16,6 +16,26 @@ argo-cd:
             - argocd.xalt.team
           secretName: argocd-server-tls
 
+  configs:
+    rbac:
+      policy.csv: |
+        p,role:read,applications,get,prod/postgres-operator,deny
+        p,role:read,applications,get,*/*,allow
+        p,role:read,applications,update,*/*,deny
+        p,role:read,applications,delete,*/*,deny
+        g,argocd_admins,role:admin
+        g,argocd_viewers,role:read
+    cm:
+      url: https://argocd.xalt.team
+      oidc.config: |
+        name: Keycloak
+        issuer: https://sso.xalt.team/auth/realms/xalt
+        clientID: argocd
+        clientSecret: $oidc.keycloak.clientSecret
+        requestedScopes: ["openid", "profile", "email", "groups"]
+        requestedIDTokenClaims: {"roles": {"essential": true}}
+        logoutURL: "https://sso.xalt.team/auth/realms/xalt/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fargocd.xalt.team"
+
   repoServer:
     env:
       - name: HELM_PLUGINS

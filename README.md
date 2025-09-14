@@ -18,6 +18,21 @@ Get ArgoCD admin password:
 kubectl -n argocd get secrets argocd-initial-admin-secret -o json | jq '.data.password' -r | base64 -d
 ```
 
+Setup Keycloak temporary admin:
+
+```
+k port-forward keycloakx-kk-0 8080:8080
+# open http://localhost:8080
+```
+
+Inject client secret into the argocd secret:
+
+```
+kubectl -n argo-cd patch secret argocd-secret --patch='{"stringData": { "oidc.keycloak.clientSecret": "<REPLACE_WITH_CLIENT_SECRET>" }}'
+```
+
+Docs: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/user-management/keycloak.md
+
 # Keycloak Terraform Provider
 ## Keycloak Configuration
 ```sh
